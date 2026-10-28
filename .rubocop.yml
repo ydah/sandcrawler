@@ -1,0 +1,39 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - test/fixtures/generated/**/*
+
+Style/Documentation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: never
+
+Metrics:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 120
+
+# Keep FAT/UF2 bit masks directly comparable with their binary format specifications.
+Style/BitwisePredicate:
+  Exclude:
+    - lib/sandcrawler/fat/**/*
+    - lib/sandcrawler/image/**/*
+
+# DirEntry#size is on-disk metadata, not a collection length.
+Style/ZeroLengthPredicate:
+  Exclude:
+    - lib/sandcrawler/fat/volume.rb
+
+# Source has no initializer or inherited initialization state.
+Lint/MissingSuper:
+  Exclude:
+    - lib/sandcrawler/image/raw_image.rb
+    - lib/sandcrawler/image/slice.rb
+    - lib/sandcrawler/image/uf2_image.rb

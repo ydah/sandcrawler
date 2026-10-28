@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+state = ENV.fetch("SANDCRAWLER_FAKE_STATE")
+mode = ENV.fetch("SANDCRAWLER_FAKE_MODE", nil)
+File.open("#{state}.calls", "a") { |file| file.puts(ARGV.join(" ")) }
+case ARGV.shift
+when "version"
+  if mode == "flood"
+    $stdout.binmode.write("x" * (2 * 1024 * 1024))
+    sleep 60
+  end
+  puts "picotool v2.3.1"
+when "info"
+  if mode == "invalid_error"
+    $stderr.binmode.write("\xFFNo accessible devices".b)
+    exit 1
+  end
+  abort "No accessible RP-series devices in BOOTSEL mode were found" if mode == "missing"
+  puts "Device Information\n  type: RP2040\n  flash size: 8K"
+  $stdout.binmode.write("name: \xFF\n".b) if mode == "invalid_info"
+when "save"
+  abort "save -a unsupported" if mode == "range" && ARGV.include?("-a")
+  count = File.exist?(state) ? File.read(state).to_i + 1 : 1
+  File.write(state, count)
+  filename = ARGV[ARGV.index("-t") - 1]
+  if mode == "partial_failure"
+    File.binwrite(filename, ARGV.include?("-a") ? "FIRST" : "SECOND")
+    abort "USB read failed"
+  end
+  data = case mode
+         when "first_bad" then count == 1 ? "B" * 8192 : "A" * 8192
+         when "unstable" then (64 + count).chr * 8192
+         when "short" then "A" * 4096
+         else "A" * 8192
+         end
+  File.binwrite(filename, data)
+else
+  abort "unexpected command"
+end

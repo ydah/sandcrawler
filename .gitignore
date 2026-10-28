@@ -1,0 +1,12 @@
+/.bundle/
+/.idea/
+/.vscode/
+/.yardoc
+/_yardoc/
+/coverage/
+/doc/
+/pkg/
+/tmp/
+/test/fixtures/generated/
+Gemfile.lock
+*.gem
