@@ -104,6 +104,59 @@ class MountedVolumeTest < Minitest::Test
     end
   end
 
+  def test_regular_file_replaced_while_opening_is_rejected
+    Dir.mktmpdir do |tmp|
+      source = File.join(tmp, "source")
+      Dir.mkdir(source)
+      path = File.join(source, "app.rb")
+      replacement = File.join(tmp, "replacement")
+      File.write(path, "original")
+      File.write(replacement, "private!")
+      [path, replacement].each { |name| File.utime(Time.at(1_600_000_000), Time.at(1_600_000_000), name) }
+      path = File.realpath(path)
+      original_open = File.method(:open)
+      open_file = lambda do |name, *args, **options, &block|
+        if name == path
+          File.rename(path, File.join(tmp, "saved"))
+          File.rename(replacement, path)
+        end
+        original_open.call(name, *args, **options, &block)
+      end
+      out = File.join(tmp, "out")
+      result = File.stub(:open, open_file) { Sandcrawler::Acquisition::MountedVolume.new(source).copy(out) }
+      record = result[:files].first
+      assert_equal "read_error", record[:status]
+      assert_empty File.binread(File.join(out, record[:output]))
+      assert(result[:warnings].any? { |warning| warning[:code] == "COPY_FAILED" })
+    end
+  end
+
+  def test_changed_source_device_with_the_same_inode_is_rejected
+    Dir.mktmpdir do |tmp|
+      source = File.join(tmp, "source")
+      Dir.mkdir(source)
+      path = File.join(source, "app.rb")
+      File.write(path, "original")
+      path = File.realpath(path)
+      original_lstat = File.method(:lstat)
+      checks = 0
+      lstat = lambda do |name|
+        stat = original_lstat.call(name)
+        if name == path
+          checks += 1
+          device = stat.dev
+          stat.define_singleton_method(:dev) { device + 1 } if checks > 1
+        end
+        stat
+      end
+      result = File.stub(:lstat, lstat) do
+        Sandcrawler::Acquisition::MountedVolume.new(source).copy(File.join(tmp, "out"))
+      end
+      assert_equal "read_error", result[:files].first[:status]
+      assert(result[:warnings].any? { |warning| warning[:code] == "COPY_FAILED" })
+    end
+  end
+
   def test_directory_replaced_by_symlink_does_not_expose_its_children
     skip "Symlink creation requires Windows privileges" if Gem.win_platform?
     Dir.mktmpdir do |tmp|

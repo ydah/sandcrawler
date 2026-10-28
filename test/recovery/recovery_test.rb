@@ -6,6 +6,17 @@ require_relative "../support/fat_builder"
 class RecoveryTest < Minitest::Test
   include FatBuilder
 
+  def test_unsigned_deleted_file_size_keeps_the_readable_prefix
+    fixture = build_fat(deleted: true)
+    fixture[:bytes][fixture[:root] + 28, 4] = [0xFFFFFFFF].pack("V")
+    change_fat(fixture, 3, 0xFFF)
+    volume = Sandcrawler::FAT::Volume.new(source_for(fixture[:bytes]))
+    _, result = Sandcrawler::Recovery::Undelete.new(volume).each.first
+    assert_equal "partial", result.status
+    assert_equal fixture[:bytes].byteslice(fixture[:first] * 512, 512), result.data
+    assert_includes result.warnings.map { |warning| warning[:code] }, "DELETED_OVERLAP"
+  end
+
   def test_recovery_layers_exist
     assert defined?(Sandcrawler::Recovery::Undelete), "recovery must exist"
   end

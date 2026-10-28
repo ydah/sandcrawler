@@ -123,7 +123,7 @@ module Sandcrawler
       end
 
       def stop_process(process)
-        Process.kill("TERM", process.pid)
+        Process.kill(Gem.win_platform? ? "KILL" : "TERM", process.pid)
         Process.kill("KILL", process.pid) unless process.join(1)
       rescue Errno::ESRCH
         nil

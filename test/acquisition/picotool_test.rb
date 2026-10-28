@@ -169,12 +169,13 @@ class PicotoolTest < Minitest::Test
   end
 
   def test_command_output_is_bounded_before_the_command_deadline
-    ENV["SANDCRAWLER_FAKE_MODE"] = "flood"
-    executable = @tool.instance_variable_get(:@executable)
-    error = assert_raises(Sandcrawler::IntegrityError) do
-      Sandcrawler::Acquisition::Picotool.new(executable: executable, timeout: 2).version
+    File.write(File.join(@tmp, "version"), "$stdout.binmode.write('x' * (2 * 1024 * 1024))\nsleep 60\n")
+    Dir.chdir(@tmp) do
+      error = assert_raises(Sandcrawler::IntegrityError) do
+        Sandcrawler::Acquisition::Picotool.new(executable: RbConfig.ruby, timeout: 2).version
+      end
+      assert_includes error.message, "output limit"
     end
-    assert_includes error.message, "output limit"
   end
 
   def test_host_read_error_keeps_manifest_for_existing_passes

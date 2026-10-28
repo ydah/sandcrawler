@@ -6,10 +6,6 @@ mode = ENV.fetch("SANDCRAWLER_FAKE_MODE", nil)
 File.open("#{state}.calls", "a") { |file| file.puts(ARGV.join(" ")) }
 case ARGV.shift
 when "version"
-  if mode == "flood"
-    $stdout.binmode.write("x" * (2 * 1024 * 1024))
-    sleep 60
-  end
   puts "picotool v2.3.1"
 when "info"
   if mode == "invalid_error"

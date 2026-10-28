@@ -6,6 +6,15 @@ require_relative "../support/fat_builder"
 class FatAdversarialTest < Minitest::Test
   include FatBuilder
 
+  def test_unsigned_file_size_keeps_the_readable_prefix
+    fixture = build_fat
+    fixture[:bytes][fixture[:root] + 28, 4] = [0xFFFFFFFF].pack("V")
+    volume = Sandcrawler::FAT::Volume.new(source_for(fixture[:bytes]))
+    result = volume.read(volume.each_entry.first)
+    assert_equal "truncated", result.status
+    assert_equal fixture[:bytes].byteslice(fixture[:first] * 512, 512), result.data
+  end
+
   def test_erased_allocation_metadata_cannot_certify_a_small_file
     fixture = build_fat
     fixture[:bytes][fixture[:reserved] * 512, fixture[:fatsz] * 1024] = "\xFF".b * (fixture[:fatsz] * 1024)

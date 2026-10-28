@@ -54,7 +54,9 @@ module Sandcrawler
           flags |= File::NOFOLLOW if File.const_defined?(:NOFOLLOW)
           File.open(path, flags) do |file|
             opened = file.stat
-            if File.realpath(path) != path || !opened.file? || opened.ino != stat.ino || opened.dev != stat.dev
+            current = File.lstat(path)
+            if File.realpath(path) != path || !opened.file? ||
+               [current.dev, current.ino] != [stat.dev, stat.ino] || !File.identical?(file, path)
               raise IOError, "Source changed while opening #{relative}"
             end
 

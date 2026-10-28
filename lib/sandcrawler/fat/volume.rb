@@ -99,7 +99,7 @@ module Sandcrawler
           warnings << { code: "ERASED_CLUSTER", detail: "#{entry.path} contains an erased cluster" }
           status = "suspect_erased" if status == "ok"
         end
-        ReadResult.new(data: data.byteslice(0, entry.size), status: status, warnings: warnings)
+        ReadResult.new(data: data.byteslice(0, [entry.size, data.bytesize].min), status: status, warnings: warnings)
       rescue Error, IOError, SystemCallError => e
         ReadResult.new(data: data || "".b, status: "chain_error",
                        warnings: (warnings || []) + [{ code: "READ_ERROR", detail: e.message }])

@@ -34,8 +34,8 @@ module Sandcrawler
             warnings << { code: "READ_ERROR", detail: "#{entry.path}, cluster #{cluster}: #{e.message}" }
             break
           end
-          yield entry, FAT::Volume::ReadResult.new(data: data.byteslice(0, entry.size), status: status,
-                                                   warnings: warnings)
+          yield entry, FAT::Volume::ReadResult.new(data: data.byteslice(0, [entry.size, data.bytesize].min),
+                                                   status: status, warnings: warnings)
         end
       end
     end
